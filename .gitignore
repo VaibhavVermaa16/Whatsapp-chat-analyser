@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Distribution / packaging
+build/
+dist/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+.prerelease-version
+
+# Unit test / coverage reports
+.coverage
+.coverage.*
+.pytest_cache/
+.mypy_cache/
+test-reports
+htmlcov
+.hypothesis
+.ruff_cache   
+
+
+# Environments
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Streamlit
+.streamlit/
+lib/streamlit/static
+streamlit-storage
+
+# IDEs/editors
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Temporary files
+*.swp

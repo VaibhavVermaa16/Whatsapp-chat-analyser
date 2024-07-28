@@ -1,0 +1,6 @@
+streamlit
+seaborn
+emoji
+urlextract
+wordcloud
+re
