@@ -1,73 +1,99 @@
 import re
 import pandas as pd
+from datetime import datetime
+
+def clean_time_string(time_str):
+    """Clean and standardize time strings before parsing."""
+    # Replace special whitespace characters with regular space
+    time_str = re.sub(r'[\xa0\u202f]', ' ', time_str)
+    # Remove leading/trailing spaces
+    time_str = time_str.strip()
+    # Ensure AM/PM is uppercase with no space before it
+    time_str = re.sub(r'(\d)\s*([APap][mM])', r'\1 \2', time_str)
+    return time_str
+
+def convert_to_datetime(date_str):
+    """Converts a date string to datetime, handling WhatsApp date formats."""
+    if pd.isna(date_str):
+        return pd.NaT
+    
+    date_str = str(date_str).strip()
+    date_str = re.sub(r'[\xa0\u202f]', ' ', date_str)  # Replace special whitespace
+    
+    try:
+        # Try parsing with dayfirst=True (for dd/mm/yyyy)
+        return pd.to_datetime(date_str, dayfirst=True, errors='raise')
+    except ValueError:
+        try:
+            # Try parsing with monthfirst=True (for mm/dd/yyyy)
+            return pd.to_datetime(date_str, monthfirst=True, errors='raise')
+        except ValueError:
+            return pd.NaT
 
 def preprocess(data):
     # Regular expression pattern to match the date, time, and am/pm
-    pattern = r'(\d{1,2}/\d{1,2}/\d{2}), (\d{1,2}:\d{2})\s?[^\S\r\n]*([ap]m) - (.*?): '
-
-    # Lists to hold the extracted data
-    dates = []
+    pattern = r'^(\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2}\s?[APap][mM]\b)\s*-\s*(.+?):\s*(.*)$'
+    
+    # Lists to hold extracted data
+    datetimes = []
     times = []
     periods = []
     senders = []
     messages = []
-
-    # Temporary variables to handle multiline messages
     current_message = ""
-    current_date = ""
-    current_time = ""
-    current_period = ""
-    current_sender = ""
 
-    # Process the dataset
     for line in data.split('\n'):
         match = re.match(pattern, line)
         if match:
-            if current_message:  # Save the previous message if there is one
+            if current_message:
                 messages.append(current_message.strip())
             
-            # Extract new date, time, period, and sender
-            current_date = match.group(1)
-            current_time = match.group(2)
-            current_period = match.group(3)
-            current_sender = match.group(4)
+            # Extract date-time and clean it
+            datetime_str = match.group(1)
+            datetime_str = clean_time_string(datetime_str)
             
-            # Append the date, time, and sender to their respective lists
-            dates.append(current_date)
-            times.append(current_time)
-            periods.append(current_period)
-            senders.append(current_sender)
+            datetimes.append(datetime_str)
             
-            # Start a new message
-            current_message = line[match.end():].strip()
-        else:
-            # Continuation of the previous message
-            current_message += "\n" + line.strip()
+            # Extract time components
+            time_part = datetime_str.split(', ')[1]
+            time_part = clean_time_string(time_part)
+            times.append(time_part)
+            
+            # Extract period (AM/PM)
+            period = re.search(r'([APap][mM])', time_part)
+            periods.append(period.group(0).upper() if period else '')
+            
+            senders.append(match.group(2))
+            current_message = match.group(3)
+        elif line.strip():
+            # Handle multiline messages
+            current_message += ' ' + line.strip()
 
     # Append the last message
     if current_message:
         messages.append(current_message.strip())
 
-    # Debugging: print lengths of all lists
-    messages.pop()
-    print(f"Lengths -> Dates: {len(dates)}, Times: {len(times)}, Periods: {len(periods)}, Senders: {len(senders)}, Messages: {len(messages)}")
-    # Create the DataFrame
+    # Create DataFrame
     df = pd.DataFrame({
-        'Date': dates,
+        'DateTime': datetimes,
         'Time': times,
         'Period': periods,
         'Sender': senders,
-        'Message': messages
+        'Message': messages[:len(datetimes)]
     })
-
-    df=df[1:]
-    df['Date']=pd.to_datetime(df['Date'], format='%d/%m/%y')
-    df['year']=df['Date'].dt.year
-    df['month']=df['Date'].dt.month_name()
-    df['date'] = df['Date'].dt.day
-    df['time']=pd.to_datetime(df['Time'], format='%H:%M')
-    df['hour']=df['time'].dt.hour
-    df['min']=df['time'].dt.minute
-    df['time']=df['time'].dt.time
-    df['Day_name']=df['Date'].dt.day_name()
-    return df
+    
+    # Convert to datetime with error handling
+    df['DateTime'] = df['DateTime'].apply(convert_to_datetime)
+    
+    # Extract datetime components - NOTE THE COLUMN NAMES HERE
+    df['year'] = df['DateTime'].dt.year
+    df['month'] = df['DateTime'].dt.month_name()
+    df['date'] = df['DateTime'].dt.day  # Changed from 'day' to 'date' to match your expectation
+    df['hour'] = df['DateTime'].dt.hour
+    df['minute'] = df['DateTime'].dt.minute
+    df['day_name'] = df['DateTime'].dt.day_name()
+    
+    # Clean up the Time column
+    df['Time'] = df['Time'].apply(clean_time_string)
+    
+    return df.dropna(subset=['DateTime'])

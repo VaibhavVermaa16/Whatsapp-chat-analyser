@@ -118,8 +118,8 @@ if uploaded_file is not None:
         
         # Monthly timeline
         st.title("Monthly timeline of messages")
-        timeline=helper.monthly_timeline(selected_user,df)
-        fig,ax=plt.subplots()
+        timeline = helper.monthly_timeline(selected_user, df)
+        fig, ax = plt.subplots()
         ax.plot(timeline['time'], timeline['Message'], marker='o', color='r', linestyle='-', linewidth=2, markersize=6)
         plt.xticks(rotation='vertical')
         plt.xlabel("Time")
@@ -130,13 +130,13 @@ if uploaded_file is not None:
         st.title("Daily timeline of messages")
         timeline=helper.daily_timeline(selected_user,df)
         fig,ax=plt.subplots(figsize=(12, 10))
-        ax.plot(timeline['Date'], timeline['Message'], color='b', linestyle='-')
+        ax.plot(timeline['date'], timeline['Message'], color='b', linestyle='-')
         plt.xticks(rotation='vertical')
         plt.xlabel("Time")
         plt.ylabel("Number of messages")
         st.pyplot(fig)
          
-        # Activity map 
+        # # Activity map 
         st.title("Activity map")
         col1, col2=st.columns(2)
         with col1:
@@ -155,10 +155,10 @@ if uploaded_file is not None:
             plt.xticks(rotation=90)
             st.pyplot(fig)
 
-        # Display the heatmap
-        st.title("Activity heatmap")
-        fig, ax=plt.subplots(figsize=(18, 10))
-        heatmap_data=helper.activity_heatmap(selected_user,df)
-        ax=sns.heatmap(heatmap_data.pivot_table(index='Day_name', columns='Interval', values='Message', aggfunc='count').fillna(0), ax=ax)
-        st.pyplot(fig)
+        # # Display the heatmap
+        # st.title("Activity heatmap")
+        # fig, ax=plt.subplots(figsize=(18, 10))
+        # heatmap_data=helper.activity_heatmap(selected_user,df)
+        # ax=sns.heatmap(heatmap_data.pivot_table(index='day_name', columns='Interval', values='Message', aggfunc='count').fillna(0), ax=ax)
+        # st.pyplot(fig)
         
